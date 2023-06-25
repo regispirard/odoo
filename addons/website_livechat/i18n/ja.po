@@ -4,6 +4,8 @@
 # 
 # Translators:
 # Martin Trigaux, 2022
+# Andy Yiu, 2022
+# Junko Augias, 2023
 # 
 msgid ""
 msgstr ""
@@ -11,8 +13,8 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-09-20 09:02+0000\n"
 "PO-Revision-Date: 2022-09-22 05:56+0000\n"
-"Last-Translator: Martin Trigaux, 2022\n"
-"Language-Team: Japanese (https://www.transifex.com/odoo/teams/41243/ja/)\n"
+"Last-Translator: Junko Augias, 2023\n"
+"Language-Team: Japanese (https://app.transifex.com/odoo/teams/41243/ja/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: \n"
@@ -46,7 +48,7 @@ msgstr ""
 #. module: website_livechat
 #: model_terms:ir.ui.view,arch_db:website_livechat.channel_page
 msgid "<span>Livechat Channel</span>"
-msgstr "<span>ライブチャットチャネル</span>"
+msgstr "<span>Webチャットチャネル</span>"
 
 #. module: website_livechat
 #: model_terms:ir.ui.view,arch_db:website_livechat.website_visitor_view_search
@@ -154,7 +156,7 @@ msgstr "公開済"
 #: code:addons/website_livechat/static/src/components/visitor_banner/visitor_banner.xml:0
 #, python-format
 msgid "Lang"
-msgstr ""
+msgstr "Lang"
 
 #. module: website_livechat
 #: code:addons/website_livechat/models/website.py:0
@@ -165,12 +167,12 @@ msgstr "ライブサポート"
 #. module: website_livechat
 #: model:ir.model,name:website_livechat.model_im_livechat_channel
 msgid "Livechat Channel"
-msgstr "ライブチャットチャネル"
+msgstr "Webチャットチャネル"
 
 #. module: website_livechat
 #: model_terms:ir.ui.view,arch_db:website_livechat.channel_list_page
 msgid "Livechat Support Channels"
-msgstr "ライブチャットサポートチャネル"
+msgstr "Webチャットサポートチャネル"
 
 #. module: website_livechat
 #: model_terms:ir.ui.view,arch_db:website_livechat.channel_page
@@ -337,7 +339,7 @@ msgstr ""
 #. module: website_livechat
 #: model:ir.model.fields,field_description:website_livechat.field_website__channel_id
 msgid "Website Live Chat Channel"
-msgstr "ウェブサイトライブチャットチャネル"
+msgstr "ウェブサイトWebチャットチャネル"
 
 #. module: website_livechat
 #: model:ir.model.fields,field_description:website_livechat.field_im_livechat_channel__website_url
