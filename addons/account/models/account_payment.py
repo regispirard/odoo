@@ -182,7 +182,7 @@ class AccountPayment(models.Model):
         for line in self.move_id.line_ids:
             if line.account_id in self._get_valid_liquidity_accounts():
                 liquidity_lines += line
-            elif line.account_id.account_type in ('asset_receivable', 'liability_payable') or line.partner_id == line.company_id.partner_id:
+            elif line.account_id.account_type in ('asset_receivable', 'liability_payable') or line.account_id == self.company_id.transfer_account_id:
                 counterpart_lines += line
             else:
                 writeoff_lines += line
@@ -1000,15 +1000,15 @@ class AccountPayment(models.Model):
             'res_model': 'account.bank.statement.line',
             'context': {'create': False},
         }
-        if len(self.reconciled_statement_lines_ids) == 1:
+        if len(self.reconciled_statement_line_ids) == 1:
             action.update({
                 'view_mode': 'form',
-                'res_id': self.reconciled_statement_lines_ids.id,
+                'res_id': self.reconciled_statement_line_ids.id,
             })
         else:
             action.update({
                 'view_mode': 'list,form',
-                'domain': [('id', 'in', self.reconciled_statement_lines_ids.ids)],
+                'domain': [('id', 'in', self.reconciled_statement_line_ids.ids)],
             })
         return action
 

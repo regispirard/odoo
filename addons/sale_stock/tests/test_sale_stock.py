@@ -1238,6 +1238,32 @@ class TestSaleStock(TestSaleCommon, ValuationReconciliationTestCommon):
         self.assertEqual(so.order_line[1].qty_delivered, 1)
         self.assertEqual(so.order_line[1].product_uom.id, uom_km_id)
 
+    def test_19_deliver_update_so_line_qty(self):
+        """
+        Creates a sale order, then validates the delivery
+        modifying the sale order lines qty via import and ensures
+        a new delivery is created.
+        """
+        self.product_a.type = 'product'
+        self.env['stock.quant']._update_available_quantity(
+            self.product_a, self.company_data['default_warehouse'].lot_stock_id, 10)
+
+        # Create sale order
+        sale_order = self._get_new_sale_order()
+        sale_order.action_confirm()
+
+        # Validate delivery
+        picking = sale_order.picking_ids
+        picking.move_ids.write({'quantity_done': 10})
+        picking.button_validate()
+
+        # Update the line and check a new delivery is created
+        with Form(sale_order.with_context(import_file=True)) as so_form:
+            with so_form.order_line.edit(0) as line:
+                line.product_uom_qty = 777
+
+        self.assertEqual(len(sale_order.picking_ids), 2)
+
     def test_multiple_returns(self):
         # Creates a sale order for 10 products.
         sale_order = self._get_new_sale_order()
@@ -1544,3 +1570,23 @@ class TestSaleStock(TestSaleCommon, ValuationReconciliationTestCommon):
         backorder_wizard.process()
 
         self.assertRecordValues(out_picking.move_line_ids, [{'result_package_id': False}, {'result_package_id': package_2.id}])
+
+    def test_inventory_admin_no_backorder_not_own_sale_order(self):
+        sale_order = self._get_new_sale_order()
+        sale_order.action_confirm()
+        pick = sale_order.picking_ids
+        inventory_admin_user = self.env['res.users'].create({
+            'name': "documents test basic user",
+            'login': "dtbu",
+            'email': "dtbu@yourcompany.com",
+            'groups_id': [(6, 0, [
+                self.ref('base.group_user'),
+                self.ref('stock.group_stock_manager'),
+                self.ref('sales_team.group_sale_salesman')])]
+        })
+        pick.with_user(inventory_admin_user).move_ids.write(
+            {'quantity_done': 1})
+        res_dict = pick.button_validate()
+        wizard = Form(self.env[(res_dict.get('res_model'))].with_user(inventory_admin_user).with_context(
+            res_dict['context'])).save()
+        wizard.with_user(inventory_admin_user).process_cancel_backorder()

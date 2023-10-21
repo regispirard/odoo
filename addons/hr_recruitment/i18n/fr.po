@@ -63,7 +63,7 @@ msgid ""
 "emails sent or received are saved in the history here</i>"
 msgstr ""
 "<div><b>Essayez d'envoyer un email </b>au candidat.</div><div><i>Astuce : "
-"Tous les emails envoyés ou reçus sont sauvegardés dans l'historique.</i>"
+"Tous les emails envoyés ou reçus sont enregistrés dans l'historique.</i>"
 
 #. module: hr_recruitment
 #. odoo-javascript
@@ -2207,8 +2207,8 @@ msgstr "Nombre d'erreurs"
 
 #. module: hr_recruitment
 #: model:ir.model.fields,help:hr_recruitment.field_hr_applicant__message_needaction_counter
-msgid "Number of messages which requires an action"
-msgstr "Nombre de messages exigeant une action"
+msgid "Number of messages requiring action"
+msgstr "Nombre de messages nécessitant une action"
 
 #. module: hr_recruitment
 #: model:ir.model.fields,help:hr_recruitment.field_hr_applicant__message_has_error_counter
@@ -2608,7 +2608,7 @@ msgstr "Salaire proposé par l'organisation, avantages supplémentaires"
 #: code:addons/hr_recruitment/static/src/js/tours/hr_recruitment.js:0
 #, python-format
 msgid "Save it !"
-msgstr "Sauvegardez le !"
+msgstr "Enregistrez le !"
 
 #. module: hr_recruitment
 #: model_terms:ir.ui.view,arch_db:hr_recruitment.hr_kanban_view_applicant
