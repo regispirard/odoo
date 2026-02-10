@@ -27,6 +27,10 @@ async function twoDeleteForward(editor) {
     await deleteForward(editor);
 }
 
+const pressEnter = editor => {
+    editor.document.execCommand('insertParagraph');
+};
+
 describe('Editor', () => {
     describe('init', () => {
         describe('No orphan inline elements compatibility mode', () => {
@@ -1171,6 +1175,78 @@ X[]
                         contentAfter: unformat(`<div>a[]d</div>`),
                     });
                 });
+                it('should fill empty block with a <br>', async () => {
+                    await testEditor(BasicEditor, {
+                        contentBefore: '<p>[]<i class="fa fa-bug" contenteditable="false"></i></p>',
+                        stepFunction: deleteForward,
+                        contentAfter: '<p>[]<br></p>',
+                    });
+                });
+                it('should delete the inline code style when removing its last character', async () => {
+                    await testEditor(BasicEditor, {
+                        contentBefore: unformat(`<div><code class="o_inline_code">ab</code>[]xyz</div>`),
+                        stepFunction: editor => editor._applyCommand('oDeleteBackward'),
+                        contentAfter: unformat(`<div><code class="o_inline_code">a[]</code>xyz</div>`),
+                    });
+                    await testEditor(BasicEditor, {
+                        contentBefore: unformat(`<div><code class="o_inline_code">a[]b</code>xyz</div>`),
+                        stepFunction: editor => editor._applyCommand('oDeleteBackward'),
+                        contentAfter: unformat(`<div><code class="o_inline_code">[]b</code>xyz</div>`),
+                    });
+                    await testEditor(BasicEditor, {
+                        contentBefore: unformat(`<div><code class="o_inline_code">ab[]</code>xyz</div>`),
+                        stepFunction: editor => editor._applyCommand('oDeleteBackward'),
+                        contentAfter: unformat(`<div><code class="o_inline_code">a[]</code>xyz</div>`),
+                    });
+                    await testEditor(BasicEditor, {
+                        contentBefore: unformat(`<div><code class="o_inline_code">a</code>[]xyz</div>`),
+                        stepFunction: editor => editor._applyCommand('oDeleteBackward'),
+                        contentAfter: unformat(`<div>[]xyz</div>`),
+                    });
+                    await testEditor(BasicEditor, {
+                        contentBefore: unformat(`<div><code class="o_inline_code">a[]</code>xyz</div>`),
+                        stepFunction: editor => editor._applyCommand('oDeleteBackward'),
+                        contentAfter: unformat(`<div>[]xyz</div>`),
+                    });
+                    await testEditor(BasicEditor, {
+                        contentBefore: unformat(`<div><em>123</em><code class="o_inline_code">a[]</code><em>xyz</em></div>`),
+                        stepFunction: editor => editor._applyCommand('oDeleteBackward'),
+                        contentAfter: unformat(`<div><em>123[]xyz</em></div>`),
+                    });
+                });
+                it('should delete the inline code style when removing its last multi-char character', async () => {
+                    const multi = "\uD800\uDC83";
+                    await testEditor(BasicEditor, {
+                        contentBefore: unformat(`<div><code class="o_inline_code">${multi}${multi}</code>[]xyz</div>`),
+                        stepFunction: editor => editor._applyCommand('oDeleteBackward'),
+                        contentAfter: unformat(`<div><code class="o_inline_code">${multi}[]</code>xyz</div>`),
+                    });
+                    await testEditor(BasicEditor, {
+                        contentBefore: unformat(`<div><code class="o_inline_code">${multi}[]${multi}</code>xyz</div>`),
+                        stepFunction: editor => editor._applyCommand('oDeleteBackward'),
+                        contentAfter: unformat(`<div><code class="o_inline_code">[]${multi}</code>xyz</div>`),
+                    });
+                    await testEditor(BasicEditor, {
+                        contentBefore: unformat(`<div><code class="o_inline_code">${multi}${multi}[]</code>xyz</div>`),
+                        stepFunction: editor => editor._applyCommand('oDeleteBackward'),
+                        contentAfter: unformat(`<div><code class="o_inline_code">${multi}[]</code>xyz</div>`),
+                    });
+                    await testEditor(BasicEditor, {
+                        contentBefore: unformat(`<div><code class="o_inline_code">${multi}</code>[]xyz</div>`),
+                        stepFunction: editor => editor._applyCommand('oDeleteBackward'),
+                        contentAfter: unformat(`<div>[]xyz</div>`),
+                    });
+                    await testEditor(BasicEditor, {
+                        contentBefore: unformat(`<div><code class="o_inline_code">${multi}[]</code>xyz</div>`),
+                        stepFunction: editor => editor._applyCommand('oDeleteBackward'),
+                        contentAfter: unformat(`<div>[]xyz</div>`),
+                    });
+                    await testEditor(BasicEditor, {
+                        contentBefore: unformat(`<div><em>123</em><code class="o_inline_code">${multi}[]</code><em>xyz</em></div>`),
+                        stepFunction: editor => editor._applyCommand('oDeleteBackward'),
+                        contentAfter: unformat(`<div><em>123[]xyz</em></div>`),
+                    });
+                });
             });
         });
         describe('Selection not collapsed', () => {
@@ -1234,6 +1310,13 @@ X[]
                     contentBefore: '<p>a<span class="style-class">[bcde]</span>f</p>',
                     stepFunction: deleteBackward,
                     contentAfter: '<p>a<span class="style-class">[]\u200B</span>f</p>',
+                });
+            });
+            it('should not add a BR', async () => {
+                await testEditor(BasicEditor, {
+                    contentBefore: '<p><span class="h4-fs">[a]</span></p>',
+                    stepFunction: deleteBackward,
+                    contentAfter: '<p><span class="h4-fs">[]\u200b</span></p>',
                 });
             });
             it('should delete styling nodes when delete if empty', async () => {
@@ -2843,6 +2926,11 @@ X[]
                         stepFunction: deleteBackward,
                         contentAfter: '<p>[]<br></p>',
                     });
+                    await testEditor(BasicEditor, {
+                        contentBefore: '<p><i class="fa fa-bug" contenteditable="false"></i>[]</p>',
+                        stepFunction: deleteBackward,
+                        contentAfter: '<p>[]<br></p>',
+                    });
                 });
                 it('should merge a paragraph with text into a paragraph with text removing spaces', async () => {
                     await testEditor(BasicEditor, {
@@ -2976,6 +3064,71 @@ X[]
                             </tbody></table>
                             <p>kl</p>`,
                         ),
+                    });
+                });
+                it('should delete the inline code style when removing its last character', async () => {
+                    await testEditor(BasicEditor, {
+                        contentBefore: unformat(`<div>[]<code class="o_inline_code">ab</code>xyz</div>`),
+                        stepFunction: editor => editor._applyCommand('oDeleteForward'),
+                        contentAfter: unformat(`<div><code class="o_inline_code">[]b</code>xyz</div>`),
+                    });
+                    await testEditor(BasicEditor, {
+                        contentBefore: unformat(`<div><code class="o_inline_code">a[]b</code>xyz</div>`),
+                        stepFunction: editor => editor._applyCommand('oDeleteForward'),
+                        contentAfter: unformat(`<div><code class="o_inline_code">a[]</code>xyz</div>`),
+                    });
+                    await testEditor(BasicEditor, {
+                        contentBefore: unformat(`<div><code class="o_inline_code">[]ab</code>xyz</div>`),
+                        stepFunction: editor => editor._applyCommand('oDeleteForward'),
+                        contentAfter: unformat(`<div><code class="o_inline_code">[]b</code>xyz</div>`),
+                    });
+                    await testEditor(BasicEditor, {
+                        contentBefore: unformat(`<div>[]<code class="o_inline_code">b</code>xyz</div>`),
+                        stepFunction: editor => editor._applyCommand('oDeleteForward'),
+                        contentAfter: unformat(`<div>[]xyz</div>`),
+                    });
+                    await testEditor(BasicEditor, {
+                        contentBefore: unformat(`<div><code class="o_inline_code">[]b</code>xyz</div>`),
+                        stepFunction: editor => editor._applyCommand('oDeleteForward'),
+                        contentAfter: unformat(`<div>[]xyz</div>`),
+                    });
+                    await testEditor(BasicEditor, {
+                        contentBefore: unformat(`<div><em>123</em><code class="o_inline_code">[]a</code><em>xyz</em></div>`),
+                        stepFunction: editor => editor._applyCommand('oDeleteForward'),
+                        contentAfter: unformat(`<div><em>123[]xyz</em></div>`),
+                    });
+                });
+                it('should delete the inline code style when removing its last multi-char character', async () => {
+                    const multi = "\uD800\uDC83";
+                    await testEditor(BasicEditor, {
+                        contentBefore: unformat(`<div>[]<code class="o_inline_code">${multi}${multi}</code>xyz</div>`),
+                        stepFunction: editor => editor._applyCommand('oDeleteForward'),
+                        contentAfter: unformat(`<div><code class="o_inline_code">[]${multi}</code>xyz</div>`),
+                    });
+                    await testEditor(BasicEditor, {
+                        contentBefore: unformat(`<div><code class="o_inline_code">${multi}[]${multi}</code>xyz</div>`),
+                        stepFunction: editor => editor._applyCommand('oDeleteForward'),
+                        contentAfter: unformat(`<div><code class="o_inline_code">${multi}[]</code>xyz</div>`),
+                    });
+                    await testEditor(BasicEditor, {
+                        contentBefore: unformat(`<div><code class="o_inline_code">[]${multi}${multi}</code>xyz</div>`),
+                        stepFunction: editor => editor._applyCommand('oDeleteForward'),
+                        contentAfter: unformat(`<div><code class="o_inline_code">[]${multi}</code>xyz</div>`),
+                    });
+                    await testEditor(BasicEditor, {
+                        contentBefore: unformat(`<div>[]<code class="o_inline_code">${multi}</code>xyz</div>`),
+                        stepFunction: editor => editor._applyCommand('oDeleteForward'),
+                        contentAfter: unformat(`<div>[]xyz</div>`),
+                    });
+                    await testEditor(BasicEditor, {
+                        contentBefore: unformat(`<div><code class="o_inline_code">[]${multi}</code>xyz</div>`),
+                        stepFunction: editor => editor._applyCommand('oDeleteForward'),
+                        contentAfter: unformat(`<div>[]xyz</div>`),
+                    });
+                    await testEditor(BasicEditor, {
+                        contentBefore: unformat(`<div><em>123</em><code class="o_inline_code">[]${multi}</code><em>xyz</em></div>`),
+                        stepFunction: editor => editor._applyCommand('oDeleteForward'),
+                        contentAfter: unformat(`<div><em>123[]xyz</em></div>`),
                     });
                 });
             });
@@ -3753,6 +3906,15 @@ X[]
                         contentAfter: '<p>abc</p><p>[]<br></p>',
                     });
                 });
+                it('inserts an empty paragraph when Enter is pressed before a non-editable element', async () => {
+                    await testEditor(BasicEditor, {
+                        contentBefore: '<p>[]<i class="fa fa-bug" contenteditable="false"></i></p>',
+                        stepFunction: async editor => {
+                            await triggerEvent(editor.editable, 'input', { data: 'Enter', inputType: 'insertParagraph' });
+                        },
+                        contentAfter: '<p><br></p><p>[]<i class="fa fa-bug" contenteditable="false"></i></p>',
+                    });
+                });
             });
             describe('Pre', () => {
                 it('should insert a line break within the pre', async () => {
@@ -4026,6 +4188,41 @@ X[]
                         contentBefore: '<div><a>ab[]</a>cd</div>',
                         stepFunction: pressEnter,
                         contentAfter: '<div><a>ab</a><br>[]cd</div>',
+                    });
+                });
+                it('should keep the last line break in the old paragraph (1)', async () => {
+                    await testEditor(BasicEditor, {
+                        contentBefore: '<div><p>abc<br>[]<br></p></div>',
+                        stepFunction: pressEnter,
+                        contentAfter: '<div><p>abc<br><br></p><p>[]<br></p></div>',
+                    });
+                });
+                it('should keep the last line break in the old paragraph (2)', async () => {
+                    await testEditor(BasicEditor, {
+                        contentBefore: "<div><p>abc<br>[]<br></p></div>",
+                        stepFunction: pressEnter,
+                        contentAfter: "<div><p>abc<br><br></p><p>[]<br></p></div>",
+                    });
+                });
+                it('should keep the last line break in the old paragraph (3)', async () => {
+                    await testEditor(BasicEditor, {
+                        contentBefore: "<div><p>abc<br>[]<br>def</p></div>",
+                        stepFunction: pressEnter,
+                        contentAfter: "<div><p>abc<br><br></p><p>[]<br>def</p></div>",
+                    });
+                });
+                it('should keep the last line break in the old paragraph (4)', async () => {
+                    await testEditor(BasicEditor, {
+                        contentBefore: "<div><p>abc<br>[]<br><br></p></div>",
+                        stepFunction: pressEnter,
+                        contentAfter: "<div><p>abc<br><br></p><p>[]<br><br></p></div>",
+                    });
+                });
+                it('should keep the last line break in the old paragraph (5)', async () => {
+                    await testEditor(BasicEditor, {
+                        contentBefore: "<div><p><br>[]<br></p></div>",
+                        stepFunction: pressEnter,
+                        contentAfter: "<div><p><br><br></p><p>[]<br></p></div>",
                     });
                 });
                 it('should insert a paragraph break outside the starting edge of an anchor', async () => {
@@ -4416,6 +4613,15 @@ X[]
                         // The second <br> is needed to make the first
                         // one visible.
                         contentAfter: '<p>abc<br>[]<br></p>',
+                    });
+                });
+                it('inserts a <br> when a line break is inserted before a non-editable element', async () => {
+                    await testEditor(BasicEditor, {
+                        contentBefore: '<p>[]<i class="fa fa-bug" contenteditable="false"></i></p>',
+                        stepFunction: async editor => {
+                            await triggerEvent(editor.editable, 'input', { data: 'Enter', inputType: 'insertLineBreak' });
+                        },
+                        contentAfter: '<p><br>[]<i class="fa fa-bug" contenteditable="false"></i></p>',
                     });
                 });
             });

@@ -26,7 +26,7 @@ class StockValuationLayer(models.Model):
     quantity = fields.Float('Quantity', readonly=True, digits='Product Unit of Measure')
     uom_id = fields.Many2one(related='product_id.uom_id', readonly=True, required=True)
     currency_id = fields.Many2one('res.currency', 'Currency', related='company_id.currency_id', readonly=True, required=True)
-    unit_cost = fields.Float('Unit Value', digits='Product Price', readonly=True, aggregator=None)
+    unit_cost = fields.Float('Unit Value', min_display_digits='Product Price', readonly=True, aggregator=None)
     value = fields.Monetary('Total Value', readonly=True)
     remaining_qty = fields.Float(readonly=True, digits='Product Unit of Measure')
     remaining_value = fields.Monetary('Remaining Value', readonly=True)
@@ -68,9 +68,14 @@ class StockValuationLayer(models.Model):
         ]).ids
         return [('id', 'in', layer_ids)]
 
+    # TODO: remove in master
     def _candidate_sort_key(self):
         self.ensure_one()
         return tuple()
+
+    def _get_related_product(self):
+        self.ensure_one()
+        return self.product_id
 
     def _validate_accounting_entries(self):
         am_vals = []
@@ -98,7 +103,7 @@ class StockValuationLayer(models.Model):
         if am_vals:
             account_moves = self.env['account.move'].sudo().create(am_vals)
             account_moves._post()
-        products_svl = groupby(self, lambda svl: (svl.product_id, svl.company_id.anglo_saxon_accounting))
+        products_svl = groupby(self, lambda svl: (svl._get_related_product(), svl.company_id.anglo_saxon_accounting))
         for (product, anglo_saxon_accounting), svls in products_svl:
             svls = self.browse(svl.id for svl in svls)
             moves = svls.stock_move_id

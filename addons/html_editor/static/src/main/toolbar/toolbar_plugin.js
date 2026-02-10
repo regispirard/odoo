@@ -183,13 +183,13 @@ export class ToolbarPlugin extends Plugin {
             // keyup. Opening is debounced to avoid open/close between
             // sequential keystrokes.
             this.addDomListener(this.editable, "keydown", (ev) => {
-                if (ev.key.startsWith("Arrow")) {
+                if (ev.key?.startsWith("Arrow")) {
                     this.overlay.close();
                     this.onSelectionChangeActive = false;
                 }
             });
             this.addDomListener(this.editable, "keyup", (ev) => {
-                if (ev.key.startsWith("Arrow")) {
+                if (ev.key?.startsWith("Arrow")) {
                     this.onSelectionChangeActive = true;
                     this.debouncedUpdateToolbar();
                 }
@@ -355,7 +355,13 @@ export class ToolbarPlugin extends Plugin {
         if (!selection) {
             return;
         }
-        const nodes = this.getFilteredTargetedNodes();
+        const nodes = this.dependencies.selection
+            .getTargetedNodes()
+            .filter(
+                (node) =>
+                    this.dependencies.selection.isNodeEditable(node) &&
+                    (!isTextNode(node) || node.textContent.trim().length)
+            );
         for (const buttonGroup of this.buttonGroups) {
             if (buttonGroup.namespace === this.state.namespace) {
                 for (const button of buttonGroup.buttons) {

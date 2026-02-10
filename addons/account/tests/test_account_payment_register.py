@@ -358,7 +358,7 @@ class TestAccountPaymentRegister(AccountTestInvoicingCommon, PaymentCommon):
         })._create_payments()
 
         self.assertRecordValues(payments, [{
-            'memo': Like(f'BATCH/{self.current_year}/...'),
+            'memo': 'BILL/2017/01/0001, BILL/2017/01/0002',
             'payment_method_line_id': self.outbound_payment_method_line.id,
         }])
         self.assertRecordValues(payments.move_id.line_ids.sorted('balance'), [
@@ -401,7 +401,7 @@ class TestAccountPaymentRegister(AccountTestInvoicingCommon, PaymentCommon):
         })._create_payments()
 
         self.assertRecordValues(payments, [{
-            'memo': Like(f'BATCH/{self.current_year}/...'),
+            'memo': 'BILL/2017/01/0001, BILL/2017/01/0002',
             'payment_method_line_id': self.outbound_payment_method_line.id,
         }])
         self.assertRecordValues(payments.move_id.line_ids.sorted('balance'), [
@@ -557,7 +557,7 @@ class TestAccountPaymentRegister(AccountTestInvoicingCommon, PaymentCommon):
 
         self.assertRecordValues(payments, [
             {
-                'memo': Like(f'BATCH/{self.current_year}/...'),
+                'memo': 'BILL/2017/01/0001, BILL/2017/01/0002, RBILL/2017/01/0001',
                 'payment_method_line_id': self.outbound_payment_method_line.id,
             },
         ])
@@ -678,7 +678,7 @@ class TestAccountPaymentRegister(AccountTestInvoicingCommon, PaymentCommon):
 
         self.assertRecordValues(payments, [
             {
-                'memo': Like(f'BATCH/{self.current_year}/...'),
+                'memo': 'BILL/2017/01/0001, BILL/2017/01/0002',
                 'payment_method_line_id': self.outbound_payment_method_line.id,
             },
             {
@@ -720,6 +720,45 @@ class TestAccountPaymentRegister(AccountTestInvoicingCommon, PaymentCommon):
                 'currency_id': self.other_currency.id,
                 'amount_currency': 3000.0,
                 'reconciled': True,
+            },
+        ])
+
+    def test_register_payment_multi_batches_grouped_with_credit_note(self):
+        ''' Choose to pay multiple batches, one with customer A bill + refund (1000 - 500)
+        and one with customer B bill (1000).
+        '''
+        partner_b = self.partner_b.copy({'property_account_position_id': False})
+        self.env['res.partner.bank'].create({
+            'acc_number': "123454321",
+            'partner_id': partner_b.id,
+            'acc_type': 'bank',
+        })
+        invoice_1 = self.in_invoice_1
+        invoice_2 = invoice_1.copy({'invoice_date': invoice_1.invoice_date, 'partner_id': partner_b.id})
+        refund_1 = self.env['account.move'].create(
+            {
+                'move_type': 'in_refund',
+                'date': '2017-01-01',
+                'invoice_date': '2017-01-01',
+                'partner_id': self.partner_a.id,
+                'invoice_line_ids': [Command.create({'product_id': self.product_a.id, 'price_unit': 500.0, 'tax_ids': False})],
+            },
+        )
+        (invoice_2 + refund_1).action_post()
+        active_ids = (invoice_1 + refund_1 + invoice_2).ids
+        payment_register = self.env['account.payment.register']\
+            .with_context(active_model='account.move', active_ids=active_ids)\
+            .create({'group_payment': True})
+        payments = payment_register._create_payments()
+
+        self.assertRecordValues(payments, [
+            {
+                'memo': 'BILL/2017/01/0001, RBILL/2017/01/0002',
+                'payment_method_line_id': self.outbound_payment_method_line.id,
+            },
+            {
+                'memo': 'BILL/2017/01/0004',
+                'payment_method_line_id': self.outbound_payment_method_line.id,
             },
         ])
 
@@ -825,8 +864,11 @@ class TestAccountPaymentRegister(AccountTestInvoicingCommon, PaymentCommon):
         we shouldn't sent email notification automatically.
         '''
         self.env['ir.config_parameter'].set_param('sale.automatic_invoice', True)
-        payment_token = self._create_token(provider_id=self._prepare_provider(code='demo').id,
-                                           demo_simulated_state='done')
+        if self.env['ir.module.module']._get('payment_demo').state == 'installed':
+            payment_token = self._create_token(provider_id=self._prepare_provider(code='demo').id,
+                                               demo_simulated_state='done')
+        else:
+            payment_token = self._create_token()
         payment_register = self.env['account.payment.register']\
                                .with_context(active_model='account.move', active_ids=self.out_invoice_4.ids)\
                                .create({'payment_token_id': payment_token.id})
@@ -1422,7 +1464,7 @@ class TestAccountPaymentRegister(AccountTestInvoicingCommon, PaymentCommon):
             }
         ])
 
-        self.assertRecordValues(payments[1], [
+        self.assertRecordValues(payments[2], [
             {
                 'memo': 'BILL/2017/01/0004',
                 'payment_method_line_id': self.bank_journal_1.outbound_payment_method_line_ids[0].id,
@@ -1430,7 +1472,7 @@ class TestAccountPaymentRegister(AccountTestInvoicingCommon, PaymentCommon):
             }
         ])
 
-        self.assertRecordValues(payments[2], [
+        self.assertRecordValues(payments[1], [
             {
                 'memo': 'RBILL/2017/01/0002',
                 'payment_method_line_id': self.bank_journal_1.inbound_payment_method_line_ids[0].id,
@@ -1466,8 +1508,8 @@ class TestAccountPaymentRegister(AccountTestInvoicingCommon, PaymentCommon):
             },
         ])
 
-        self.assertRecordValues(payments[1].move_id.line_ids.sorted('balance'), [
-            # == Payment 2: to pay invoice_2 ==
+        self.assertRecordValues(payments[2].move_id.line_ids.sorted('balance'), [
+            # == Payment 3: to pay invoice_2 ==
             # Payable line:
             {
                 'debit': 0.0,
@@ -1486,8 +1528,8 @@ class TestAccountPaymentRegister(AccountTestInvoicingCommon, PaymentCommon):
             },
         ])
 
-        self.assertRecordValues(payments[2].move_id.line_ids.sorted('balance'), [
-            # == Payment 3: to pay refund_1 ==
+        self.assertRecordValues(payments[1].move_id.line_ids.sorted('balance'), [
+            # == Payment 2: to pay refund_1 ==
             # Liquidity line:
             {
                 'debit': 0.0,
@@ -1766,7 +1808,6 @@ class TestAccountPaymentRegister(AccountTestInvoicingCommon, PaymentCommon):
             'installments_mode': 'next',
             'installments_switch_amount': 1333.33,
             'currency_id': self.company.currency_id.id,  # Different currencies, so we get the company's one
-            'communication': Like(f'BATCH/{self.current_year}/...'),
         }])
 
         wizard = self.env['account.payment.register'].with_context(
@@ -1803,7 +1844,6 @@ class TestAccountPaymentRegister(AccountTestInvoicingCommon, PaymentCommon):
             'payment_difference': 0.5,
             'installments_mode': 'next',
             'installments_switch_amount': 357.83,  # 24.5 for in_invoice_epd_applied + 1000 / 3 (rate) for the second
-            'communication': Like(f'BATCH/{self.current_year}/...'),
         }])
 
         # Clicking on the button to full gets the amount from js, so we need to put it by hand here
@@ -1817,7 +1857,6 @@ class TestAccountPaymentRegister(AccountTestInvoicingCommon, PaymentCommon):
             'payment_difference': 0.5,
             'installments_mode': 'full',
             'installments_switch_amount': 57.83,  # The previous 'next' amount
-            'communication': Like(f'BATCH/{self.current_year}/...'),
         }])
 
     def test_payment_register_with_next_payment_date(self):
@@ -2036,3 +2075,24 @@ class TestAccountPaymentRegister(AccountTestInvoicingCommon, PaymentCommon):
         self.env.company.parent_ids.invalidate_recordset()
         payment = wizard._create_payments()
         self.assertTrue(payment)
+
+    def test_payment_register_wizard_without_receivable_line_due_date(self):
+        """Test creating the payment register wizard when a receivable line has no due date."""
+        invoice = self.out_invoice_1
+        invoice.button_draft()
+        invoice.invoice_payment_term_id = self.term_0_5_10_days
+        receivable_lines = invoice.line_ids.filtered(lambda x: x.account_type == 'asset_receivable')
+        self.assertEqual(len(receivable_lines), 3)
+
+        receivable_lines[0].date_maturity = False
+        invoice.action_post()
+
+        wizard = Form(self.env['account.payment.register'].with_context(
+            active_model='account.move', active_ids=invoice.ids))
+
+        self.assertEqual(wizard.amount, invoice.amount_residual)
+        self.assertRecordValues(receivable_lines, [
+            {'amount_currency': 100, 'date_maturity': False},
+            {'amount_currency': 300, 'date_maturity': fields.Date.from_string('2017-01-06')},
+            {'amount_currency': 600, 'date_maturity': fields.Date.from_string('2017-01-11')},
+        ])
